@@ -27,7 +27,7 @@ class TestSignalJitter(unittest.TestCase):
             A 1 or 0 value for HIGH and LOW respectively.
         """
 
-        return math.floor(time.time() % 2)
+        return math.floor(time.perf_counter() % 2)
 
     @patch.object(DAQ, "read_digital", side_effect=side_effect_read_digital)
     def test_read(self, *args: list, **kwargs: dict) -> None:
@@ -36,14 +36,14 @@ class TestSignalJitter(unittest.TestCase):
         device = DAQ()
 
         # Init the variables to track the sampling process
-        start = time.time()
+        start = time.perf_counter()
         prev_state = None
         prev_time = start
         delays = []
 
         while True:
             # Store the current time to be constant for each iteration
-            now = time.time()
+            now = time.perf_counter()
 
             # Perform read
             state = device.read_digital("Dev1/0")
