@@ -19,6 +19,6 @@ The chosen DAQ is the [`NI USB-6001`](https://www.ni.com/pt-br/shop/model/usb-60
         * Inject random delays in between samples to simulate sampling rates bellow the specifications.
 * Input signal
     * Check for signal integrity, measure the delay between each transition from high to low.
-        * Simulate regular operation *(1hz)*.
+        * Simulate regular operation *(0.5hz)*.
         * Inject random delays in between transitions to simulate jitter in the signal.
         * Inject noise into the signal, transitioning from high to low ramdonly during the sampling duration.
