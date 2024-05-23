@@ -3,6 +3,8 @@ import time
 import unittest
 from unittest.mock import patch
 
+import numpy as np
+
 from mock_nidaqmx import DAQ
 
 TEST_DURATION = 11  # In seconds
@@ -39,7 +41,7 @@ class TestSignalJitter(unittest.TestCase):
         start = time.perf_counter()
         prev_state = None
         prev_time = start
-        delays = []
+        delays = np.array([])
 
         while True:
             # Store the current time to be constant for each iteration
@@ -54,7 +56,7 @@ class TestSignalJitter(unittest.TestCase):
 
             # Store delay time in list if state changed
             if state != prev_state:
-                delays.append(now - prev_time)
+                delays = np.append(delays, (now - prev_time))
                 prev_state = state
                 prev_time = now
 
