@@ -39,16 +39,18 @@ class TestSignalJitter(unittest.TestCase):
 
         # Init the variables to track the sampling process.
         start = time.perf_counter()
+        delays = np.array([])
         prev_state = None
         prev_time = start
-        delays = np.array([])
+        samples_count = 0
 
         while True:
             # Store the current time to be constant for each iteration.
             now = time.perf_counter()
 
-            # Perform read
+            # Perform read and count sample as read.
             state = device.read_digital("Dev1/0")
+            samples_count += 1
 
             # Init the previous state if it's None.
             if prev_state is None:
@@ -64,13 +66,21 @@ class TestSignalJitter(unittest.TestCase):
             if (now - start) > TEST_DURATION:
                 break
 
+        # Store the end time of the iterations.
+        end = now
+
         # Compute jitters from the delays. The first delay is discarded as it
         # did not start synchonized with the square wave.
         jitters = delays[1:] * 1000 - (PERIOD / 2)
 
-        # Compute the mean, std, min and max of the absolute values of the
+        # Compute the percentage of failed samples, number of samples per
+        # second. And mean, std, min and max of the absolute values of the
         # jitters.
         jitters_abs = np.abs(jitters)
+
+        failed_percent = np.sum(jitters_abs > MAX_JITTER) / len(jitters) * 100
+        samples_per_second = samples_count / (end - start)
+
         jitters_mean = jitters_abs.mean()
         jitters_std = jitters_abs.std()
         jitters_min = jitters_abs.min()
@@ -80,6 +90,9 @@ class TestSignalJitter(unittest.TestCase):
         print(f"\n{self.__class__.__name__}")
         print(
             f"\tMean: {jitters_mean:.3f}ms, Std: {jitters_std:.3f}ms, Min: {jitters_min:.3f}ms, Max: {jitters_max:.3f}ms"
+        )
+        print(
+            f"\tSamples per second: {samples_per_second:,.0f}, Transitions: {len(jitters)}, Failed: {failed_percent:.1f}%"
         )
 
         # Check if all jitters are less then 'MAX_JITTER'. If not, print which
