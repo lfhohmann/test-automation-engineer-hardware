@@ -80,6 +80,7 @@ def base_test(test_case: unittest.TestCase, device: DAQ) -> np.ndarray[float]:
         if abs(jitter) > MAX_JITTER:
             print(f"\t\tFAIL - Jitter of transition {i:03} is over {MAX_JITTER}ms: {jitter:8.3f}ms")
 
+    # Prevents Github Actions output from getting out of order.
     print("\n", flush=True)
     time.sleep(1)
 
