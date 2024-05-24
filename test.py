@@ -1,4 +1,4 @@
-import math
+import random
 import time
 import unittest
 from unittest.mock import patch
@@ -17,8 +17,14 @@ class TestSignalJitter(unittest.TestCase):
     Test if the signal jitter is within acceptable range.
     """
 
-    @staticmethod
-    def side_effect_read_digital(*args: list, **kwargs: dict) -> int:
+    def __init__(self, methodName: str = "runTest") -> None:
+        super().__init__(methodName)
+
+        # Global class variables to track the state changes
+        self.next_state_change_time = time.perf_counter()
+        self.current_state = 0
+
+    def side_effect_read_digital(self, *args: list, **kwargs: dict) -> int:
         """
         Patch the 'read_digital()' function of the DAQ class to generate a
         square wave of 0.5Hz and 50% duty cycle.
@@ -29,81 +35,91 @@ class TestSignalJitter(unittest.TestCase):
             A 1 or 0 value for HIGH and LOW respectively.
         """
 
-        return math.floor(time.perf_counter() % 2)
+        # Store the current time to be constant for each function call.
+        now = time.perf_counter()
 
-    @patch.object(DAQ, "read_digital", side_effect=side_effect_read_digital)
-    def test_read(self, *args: list, **kwargs: dict) -> None:
+        # If it is time to change the state then do so and compute the time
+        # for the next state change.
+        if now > self.next_state_change_time:
+            self.current_state = not self.current_state
+            self.next_state_change_time = now + (PERIOD / 2 / 1000)
 
-        # Init the device
-        device = DAQ()
+        return self.current_state
 
-        # Init the variables to track the sampling process.
-        start = time.perf_counter()
-        delays = np.array([])
-        prev_state = None
-        prev_time = start
-        samples_count = 0
+    def test_read(self) -> None:
+        # Context manager to patch "read_digital()" function of the DAQ class.
+        with patch.object(DAQ, "read_digital", side_effect=self.side_effect_read_digital):
 
-        while True:
-            # Store the current time to be constant for each iteration.
-            now = time.perf_counter()
+            # Init the device
+            device = DAQ()
 
-            # Perform read and count sample as read.
-            state = device.read_digital("Dev1/0")
-            samples_count += 1
+            # Init the variables to track the sampling process.
+            start = time.perf_counter()
+            delays = np.array([])
+            prev_state = None
+            prev_time = start
+            samples_count = 0
 
-            # Init the previous state if it's None.
-            if prev_state is None:
-                prev_state = state
+            while True:
+                # Store the current time to be constant for each iteration.
+                now = time.perf_counter()
 
-            # Store delay time in list if state changed.
-            if state != prev_state:
-                delays = np.append(delays, (now - prev_time))
-                prev_state = state
-                prev_time = now
+                # Perform read and count sample as read.
+                state = device.read_digital("Dev1/0")
+                samples_count += 1
 
-            # Break the loop if the test duration is reached.
-            if (now - start) > TEST_DURATION:
-                break
+                # Init the previous state if it's None.
+                if prev_state is None:
+                    prev_state = state
 
-        # Store the end time of the iterations.
-        end = now
+                # Store delay time in list if state changed.
+                if state != prev_state:
+                    delays = np.append(delays, (now - prev_time))
+                    prev_state = state
+                    prev_time = now
 
-        # Compute jitters from the delays. The first delay is discarded as it
-        # did not start synchonized with the square wave.
-        jitters = delays[1:] * 1000 - (PERIOD / 2)
+                # Break the loop if the test duration is reached.
+                if (now - start) > TEST_DURATION:
+                    break
 
-        # Compute the percentage of failed samples, number of samples per
-        # second. And mean, std, min and max of the absolute values of the
-        # jitters.
-        jitters_abs = np.abs(jitters)
+            # Store the end time of the iterations.
+            end = now
 
-        failed_percent = np.sum(jitters_abs > MAX_JITTER) / len(jitters) * 100
-        samples_per_second = samples_count / (end - start)
+            # Compute jitters from the delays. The first delay is discarded as it
+            # did not start synchonized with the square wave.
+            jitters = delays[1:] * 1000 - (PERIOD / 2)
 
-        jitters_mean = jitters_abs.mean()
-        jitters_std = jitters_abs.std()
-        jitters_min = jitters_abs.min()
-        jitters_max = jitters_abs.max()
+            # Compute the percentage of failed samples, number of samples per
+            # second. And mean, std, min and max of the absolute values of the
+            # jitters.
+            jitters_abs = np.abs(jitters)
 
-        # Print results and stats.
-        print(f"\n{self.__class__.__name__}")
-        print(
-            f"\tMean: {jitters_mean:.3f}ms, Std: {jitters_std:.3f}ms, Min: {jitters_min:.3f}ms, Max: {jitters_max:.3f}ms"
-        )
-        print(
-            f"\tSamples per second: {samples_per_second:,.0f}, Transitions: {len(jitters)}, Failed: {failed_percent:.1f}%"
-        )
+            failed_percent = np.sum(jitters_abs > MAX_JITTER) / len(jitters) * 100
+            samples_per_second = samples_count / (end - start)
 
-        # Check if all jitters are less then 'MAX_JITTER'. If not, print which
-        # transition failed and what was it's jitter.
-        for i, jitter in enumerate(jitters):
-            if abs(jitter) > MAX_JITTER:
-                print(f"\t\tFAIL - Jitter of transition {i:03} is over {MAX_JITTER}ms: {jitter:8.3f}ms")
+            jitters_mean = jitters_abs.mean()
+            jitters_std = jitters_abs.std()
+            jitters_min = jitters_abs.min()
+            jitters_max = jitters_abs.max()
 
-        # Assert that all jitters are less then 'MAX_JITTER'.
-        for jitter in jitters:
-            self.assertLessEqual(abs(jitter), MAX_JITTER)
+            # Print results and stats.
+            print(f"\n{self.__class__.__name__}")
+            print(
+                f"\tMean: {jitters_mean:.3f}ms, Std: {jitters_std:.3f}ms, Min: {jitters_min:.3f}ms, Max: {jitters_max:.3f}ms"
+            )
+            print(
+                f"\tSamples per second: {samples_per_second:,.0f}, Transitions: {len(jitters)}, Failed: {failed_percent:.1f}%"
+            )
+
+            # Check if all jitters are less then 'MAX_JITTER'. If not, print which
+            # transition failed and what was it's jitter.
+            for i, jitter in enumerate(jitters):
+                if abs(jitter) > MAX_JITTER:
+                    print(f"\t\tFAIL - Jitter of transition {i:03} is over {MAX_JITTER}ms: {jitter:8.3f}ms")
+
+            # Assert that all jitters are less then 'MAX_JITTER'.
+            for jitter in jitters:
+                self.assertLessEqual(abs(jitter), MAX_JITTER)
 
 
 if __name__ == "__main__":
