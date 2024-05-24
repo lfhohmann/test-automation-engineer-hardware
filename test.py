@@ -80,6 +80,9 @@ def base_test(test_case: unittest.TestCase, device: DAQ) -> np.ndarray[float]:
         if abs(jitter) > MAX_JITTER:
             print(f"\t\tFAIL - Jitter of transition {i:03} is over {MAX_JITTER}ms: {jitter:8.3f}ms")
 
+    print("\n", flush=True)
+    time.sleep(1)
+
     # Assert that all jitters are less then 'MAX_JITTER'.
     for jitter in jitters:
         test_case.assertLessEqual(abs(jitter), MAX_JITTER)
@@ -318,3 +321,5 @@ class TestSignalFluke(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    print("\n\n\n\n\n\nresults")
