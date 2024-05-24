@@ -37,7 +37,7 @@ def base_test(test_case: unittest.TestCase, device: DAQ) -> np.ndarray[float]:
             samples_count += 1
 
             # Limiting the sampling rate yields more reliable results.
-            time.sleep(1 / 5_000_000)
+            time.sleep(1 / 10_000_000)
 
             # Init the previous state if it's None.
             if prev_state is None:
