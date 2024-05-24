@@ -1,7 +1,7 @@
 import random
 from typing import Self
 
-from .utils import unflatten_channel_string
+from .utils import unflatten_channel_string  # Copied from the 'nidaqmx' module
 
 
 class Channel:
@@ -126,8 +126,14 @@ class DAQ:
 
             self.channels = []
 
-        def read(self, number_of_samples_per_channel=1) -> list[list[float | bool]]:
-            """Read the specified number of samples for each channel."""
+        def read(self, number_of_samples_per_channel=1) -> list[list[float | int]]:
+            """Read the specified number of samples for each channel.
+
+            Returns:
+                list[list[float | int]]:
+
+                A list of all channels, each with it's own list of samples.
+            """
 
             return [[channel.value for _ in range(number_of_samples_per_channel)] for channel in self.channels]
 
