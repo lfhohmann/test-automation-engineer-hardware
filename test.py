@@ -7,7 +7,7 @@ import numpy as np
 
 from mock_nidaqmx import DAQ
 
-TEST_DURATION = 6  # In seconds
+TEST_DURATION = 11  # In seconds
 MAX_JITTER = 10  # In ms
 PERIOD = 2_000  # In ms
 
@@ -35,6 +35,9 @@ def base_test(test_case: unittest.TestCase, device: DAQ) -> np.ndarray[float]:
             # Perform read and count sample as read.
             state = task.read()
             samples_count += 1
+
+            # Limiting the sampling rate yields more reliable results.
+            time.sleep(1 / 5_000_000)
 
             # Init the previous state if it's None.
             if prev_state is None:
@@ -231,7 +234,7 @@ class TestSignalRandomness(unittest.TestCase):
         now = time.perf_counter()
 
         # Inject random state transitions.
-        if random.random() < 0.000005:
+        if random.random() < 0.000075:
             self.current_state = not self.current_state
             return self.current_state
 
@@ -297,7 +300,7 @@ class TestSignalFluke(unittest.TestCase):
             return self.current_state
 
         # Inject randomly a fluke in the signal.
-        if random.random() < 0.000001:
+        if random.random() < 0.000075:
             self.current_state = not self.current_state
             self.is_fluke = True
 
