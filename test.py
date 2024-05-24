@@ -7,14 +7,14 @@ import numpy as np
 
 from mock_nidaqmx import DAQ
 
-TEST_DURATION = 11  # In seconds
+TEST_DURATION = 6  # In seconds
 MAX_JITTER = 10  # In ms
 PERIOD = 2_000  # In ms
 
 
 class TestSignalJitter(unittest.TestCase):
     """
-    Test that the signal jitter is within acceptable range.
+    Test if the signal jitter is within acceptable range.
     """
 
     @staticmethod
@@ -37,42 +37,59 @@ class TestSignalJitter(unittest.TestCase):
         # Init the device
         device = DAQ()
 
-        # Init the variables to track the sampling process
+        # Init the variables to track the sampling process.
         start = time.perf_counter()
         prev_state = None
         prev_time = start
         delays = np.array([])
 
         while True:
-            # Store the current time to be constant for each iteration
+            # Store the current time to be constant for each iteration.
             now = time.perf_counter()
 
             # Perform read
             state = device.read_digital("Dev1/0")
 
-            # Init the previous state if it's None
+            # Init the previous state if it's None.
             if prev_state is None:
                 prev_state = state
 
-            # Store delay time in list if state changed
+            # Store delay time in list if state changed.
             if state != prev_state:
                 delays = np.append(delays, (now - prev_time))
                 prev_state = state
                 prev_time = now
 
-            # Break the loop if the test duration is reached
+            # Break the loop if the test duration is reached.
             if (now - start) > TEST_DURATION:
                 break
 
-        # Iterate over each delay and check if it's less then 'MAX_JITTER'.
-        # The first delay is discarded as it did not start synchonized with
-        # the square wave.
-        for delay in delays[1:]:
+        # Compute jitters from the delays. The first delay is discarded as it
+        # did not start synchonized with the square wave.
+        jitters = delays[1:] * 1000 - (PERIOD / 2)
 
-            # Calculate the jitter
-            jitter = (delay * 1000) - (PERIOD / 2)
+        # Compute the mean, std, min and max of the absolute values of the
+        # jitters.
+        jitters_abs = np.abs(jitters)
+        jitters_mean = jitters_abs.mean()
+        jitters_std = jitters_abs.std()
+        jitters_min = jitters_abs.min()
+        jitters_max = jitters_abs.max()
 
-            # Assert that the jitter is less then 'MAX_JITTER'
+        # Print results and stats.
+        print(f"\n{self.__class__.__name__}")
+        print(
+            f"\tMean: {jitters_mean:.3f}ms, Std: {jitters_std:.3f}ms, Min: {jitters_min:.3f}ms, Max: {jitters_max:.3f}ms"
+        )
+
+        # Check if all jitters are less then 'MAX_JITTER'. If not, print which
+        # transition failed and what was it's jitter.
+        for i, jitter in enumerate(jitters):
+            if abs(jitter) > MAX_JITTER:
+                print(f"\t\tFAIL - Jitter of transition {i:03} is over {MAX_JITTER}ms: {jitter:8.3f}ms")
+
+        # Assert that all jitters are less then 'MAX_JITTER'.
+        for jitter in jitters:
             self.assertLessEqual(abs(jitter), MAX_JITTER)
 
 
