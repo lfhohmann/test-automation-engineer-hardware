@@ -25,27 +25,30 @@ def base_test(test_case: unittest.TestCase, device: DAQ) -> np.ndarray[float]:
     prev_time = start
     samples_count = 0
 
-    while True:
-        # Store the current time to be constant for each iteration.
-        now = time.perf_counter()
+    with device.Task() as task:
+        task.di_channels.add_di_chan("Dev1/0")
 
-        # Perform read and count sample as read.
-        state = device.read_digital("Dev1/0")
-        samples_count += 1
+        while True:
+            # Store the current time to be constant for each iteration.
+            now = time.perf_counter()
 
-        # Init the previous state if it's None.
-        if prev_state is None:
-            prev_state = state
+            # Perform read and count sample as read.
+            state = task.read()
+            samples_count += 1
 
-        # Store delay time in list if state changed.
-        if state != prev_state:
-            delays = np.append(delays, (now - prev_time))
-            prev_state = state
-            prev_time = now
+            # Init the previous state if it's None.
+            if prev_state is None:
+                prev_state = state
 
-        # Break the loop if the test duration is reached.
-        if (now - start) > TEST_DURATION:
-            break
+            # Store delay time in list if state changed.
+            if state != prev_state:
+                delays = np.append(delays, (now - prev_time))
+                prev_state = state
+                prev_time = now
+
+            # Break the loop if the test duration is reached.
+            if (now - start) > TEST_DURATION:
+                break
 
     # Store the end time of the iterations.
     end = now
@@ -106,7 +109,7 @@ class TestSignalJitter(unittest.TestCase):
         self.next_state_change_time = time.perf_counter()
         self.current_state = 0
 
-    def side_effect_read_digital(self, *args: list, **kwargs: dict) -> int:
+    def side_effect_read(self, *args: list, **kwargs: dict) -> int:
         """
         Patch the 'read_digital()' function of the DAQ class to generate a
         square wave of 0.5Hz and 50% duty cycle.
@@ -130,8 +133,8 @@ class TestSignalJitter(unittest.TestCase):
         return self.current_state
 
     def test_read(self) -> None:
-        # Context manager to patch "read_digital()" function of the DAQ class.
-        with patch.object(DAQ, "read_digital", side_effect=self.side_effect_read_digital):
+        # Context manager to patch "read()" function of the DAQ.Task class.
+        with patch.object(DAQ.Task, "read", side_effect=self.side_effect_read):
 
             # Init the device
             device = DAQ()
@@ -158,7 +161,7 @@ class TestSignalJitterNoise(unittest.TestCase):
         self.next_state_change_time = time.perf_counter()
         self.current_state = 0
 
-    def side_effect_read_digital(self, *args: list, **kwargs: dict) -> int:
+    def side_effect_read(self, *args: list, **kwargs: dict) -> int:
         """
         Patch the 'read_digital()' function of the DAQ class to generate a
         square wave of 0.5Hz and 50% duty cycle. A jitter of +-(2 * MAX_JITTER)
@@ -184,8 +187,8 @@ class TestSignalJitterNoise(unittest.TestCase):
         return self.current_state
 
     def test_read(self) -> None:
-        # Context manager to patch "read_digital()" function of the DAQ class.
-        with patch.object(DAQ, "read_digital", side_effect=self.side_effect_read_digital):
+        # Context manager to patch "read()" function of the DAQ.Task class.
+        with patch.object(DAQ.Task, "read", side_effect=self.side_effect_read):
 
             # Init the device
             device = DAQ()
@@ -212,7 +215,7 @@ class TestSignalRandomness(unittest.TestCase):
         self.next_state_change_time = time.perf_counter()
         self.current_state = 0
 
-    def side_effect_read_digital(self, *args: list, **kwargs: dict) -> int:
+    def side_effect_read(self, *args: list, **kwargs: dict) -> int:
         """
         Patch the 'read_digital()' function of the DAQ class to generate a
         square wave of 0.5Hz and 50% duty cycle. Random state changes are
@@ -242,8 +245,8 @@ class TestSignalRandomness(unittest.TestCase):
         return self.current_state
 
     def test_read(self) -> None:
-        # Context manager to patch "read_digital()" function of the DAQ class.
-        with patch.object(DAQ, "read_digital", side_effect=self.side_effect_read_digital):
+        # Context manager to patch "read()" function of the DAQ.Task class.
+        with patch.object(DAQ.Task, "read", side_effect=self.side_effect_read):
 
             # Init the device
             device = DAQ()
@@ -271,7 +274,7 @@ class TestSignalFluke(unittest.TestCase):
         self.current_state = 0
         self.is_fluke = False
 
-    def side_effect_read_digital(self, *args: list, **kwargs: dict) -> int:
+    def side_effect_read(self, *args: list, **kwargs: dict) -> int:
         """
         Patch the 'read_digital()' function of the DAQ class to generate a
         square wave of 0.5Hz and 50% duty cycle. Random state changes are
@@ -310,8 +313,8 @@ class TestSignalFluke(unittest.TestCase):
         return self.current_state
 
     def test_read(self) -> None:
-        # Context manager to patch "read_digital()" function of the DAQ class.
-        with patch.object(DAQ, "read_digital", side_effect=self.side_effect_read_digital):
+        # Context manager to patch "read()" function of the DAQ.Task class.
+        with patch.object(DAQ.Task, "read", side_effect=self.side_effect_read):
 
             # Init the device
             device = DAQ()
@@ -322,5 +325,3 @@ class TestSignalFluke(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-    print("\n\n\n\n\n\nresults")
