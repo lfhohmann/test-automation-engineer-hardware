@@ -19,29 +19,44 @@ def base_test(test_case: unittest.TestCase, device: DAQ) -> np.ndarray[float]:
     """
 
     # Init the variables to track the sampling process.
-    start = time.perf_counter()
     delays = np.array([])
-    prev_state = None
-    prev_time = start
     samples_count = 0
+    prev_state = None
+    prev_time = None
 
+    # Context manager to mimic the original 'nidaqmx' module.
     with device.Task() as task:
+
+        # Configure the channel for the task to read.
         task.di_channels.add_di_chan("Dev1/0")
 
+        # Wait for the first state transition.
+        while True:
+            # Perform a read.
+            state = task.read()
+
+            # Init the previous state if it's None.
+            if prev_state is None:
+                prev_state = state
+
+            # Break on first state transition.
+            if state != prev_state:
+                prev_time = time.perf_counter()
+                prev_state = state
+                break
+
+        # Perform reads.
+        start = time.perf_counter()
         while True:
             # Store the current time to be constant for each iteration.
             now = time.perf_counter()
 
-            # Perform read and count sample as read.
+            # Perform a read and count sample as read.
             state = task.read()
             samples_count += 1
 
             # Limiting the sampling rate yields more reliable results.
             time.sleep(1 / 5_000_000)
-
-            # Init the previous state if it's None.
-            if prev_state is None:
-                prev_state = state
 
             # Store delay time in list if state changed.
             if state != prev_state:
@@ -58,7 +73,7 @@ def base_test(test_case: unittest.TestCase, device: DAQ) -> np.ndarray[float]:
 
     # Compute jitters from the delays. The first delay is discarded as it
     # did not start synchonized with the square wave.
-    jitters = delays[1:] * 1000 - (PERIOD / 2)
+    jitters = delays * 1000 - (PERIOD / 2)
 
     # Compute the percentage of failed samples, number of samples per
     # second. And mean, std, min and max of the absolute values of the
@@ -275,7 +290,7 @@ class TestSignalFluke(unittest.TestCase):
         # Global class variables to track the state changes
         self.next_state_change_time = time.perf_counter()
         self.current_state = 0
-        self.is_fluke = False
+        self.is_fluke = True
 
     def side_effect_read(self, *args: list, **kwargs: dict) -> int:
         """
