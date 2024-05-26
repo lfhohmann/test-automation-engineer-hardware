@@ -5,6 +5,7 @@ import unittest
 from mock_nidaqmx import DAQ
 
 TEST_DURATION = 11  # In seconds
+MIN_SAMPLES_PER_SECOND = 100
 
 
 class TestDaqSampling(unittest.TestCase):
@@ -52,9 +53,14 @@ class TestDaqSampling(unittest.TestCase):
         print(f"\n\n{self.__class__.__name__}.{self.test_read.__name__}()")
         print(f"\tSamples per second: {samples_per_second:,.0f}")
 
+        # Print "FAIL" if the number of samples per second is less than the
+        # minimum
+        if samples_per_second < MIN_SAMPLES_PER_SECOND:
+            print("\t\tFAIL")
+
         # Assert that the number of samples per second is greater than or equal
         # to the minimum
-        self.assertGreaterEqual(samples_per_second, 100)
+        self.assertGreaterEqual(samples_per_second, MIN_SAMPLES_PER_SECOND)
 
 
 class TestDaqSamplingIrregular(unittest.TestCase):
@@ -103,9 +109,14 @@ class TestDaqSamplingIrregular(unittest.TestCase):
         print(f"\n\n{self.__class__.__name__}.{self.test_read.__name__}()")
         print(f"\tSamples per second: {samples_per_second:,.0f}")
 
+        # Print "FAIL" if the number of samples per second is less than the
+        # minimum
+        if samples_per_second < MIN_SAMPLES_PER_SECOND:
+            print("\t\tFAIL")
+
         # Assert that the number of samples per second is greater than or equal
         # to the minimum
-        self.assertGreaterEqual(samples_per_second, 100)
+        self.assertGreaterEqual(samples_per_second, MIN_SAMPLES_PER_SECOND)
 
 
 if __name__ == "__main__":
