@@ -273,7 +273,7 @@ class TestSignalRandomness(unittest.TestCase):
             base_test(self, device)
 
 
-class TestSignalFluke(unittest.TestCase):
+class TestSignalSingleSampleNoise(unittest.TestCase):
     """
     Test if the signal jitter is within acceptable range. Random state changes
     are injected for a single sample of the signal to simulate a test failure.
