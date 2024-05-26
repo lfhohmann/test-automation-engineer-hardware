@@ -12,7 +12,7 @@ MAX_JITTER = 10  # In ms
 PERIOD = 2_000  # In ms
 
 
-def base_test(test_case: unittest.TestCase, device: DAQ) -> np.ndarray[float]:
+def base_test(test_case: unittest.TestCase, device: DAQ) -> None:
     """
     A base test to make the code cleaner and more reusable. It is used by all
     tests in this file.
