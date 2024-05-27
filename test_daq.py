@@ -57,6 +57,8 @@ class TestDaqSampling(unittest.TestCase):
         # minimum
         if samples_per_second < MIN_SAMPLES_PER_SECOND:
             print("\t\tFAIL")
+        else:
+            print("\t\tPASS")
 
         # Assert that the number of samples per second is greater than or equal
         # to the minimum
@@ -113,6 +115,8 @@ class TestDaqSamplingIrregular(unittest.TestCase):
         # minimum
         if samples_per_second < MIN_SAMPLES_PER_SECOND:
             print("\t\tFAIL")
+        else:
+            print("\t\tPASS")
 
         # Assert that the number of samples per second is greater than or equal
         # to the minimum
