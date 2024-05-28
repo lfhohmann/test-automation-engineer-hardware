@@ -1,25 +1,34 @@
 import random
 import time
 import unittest
+from datetime import datetime as dt
 from unittest.mock import patch
+from uuid import uuid4
 
 import numpy as np
 
+import db
 from mock_nidaqmx import DAQ
 
 TEST_DURATION = 11  # In seconds
 MAX_JITTER = 10  # In ms
 PERIOD = 2_000  # In ms
 
+tests_uuid = uuid4().hex
+tests_timestamp = dt.now()
+
+print(f"UUID: {tests_uuid}, TIMESTAMP: {tests_timestamp}")
+
 
 def base_test(test_case: unittest.TestCase, device: DAQ) -> None:
     """
-    A base test to make the code cleaner and more reusable. It is used by all
+    A base test to make the code cleaner and more reusable. It is used by alld
     tests in this file.
     """
 
     # Init the variables to track the sampling process.
     delays = np.array([])
+    states = np.array([])
     samples_count = 0
     prev_state = None
     prev_time = None
@@ -58,9 +67,10 @@ def base_test(test_case: unittest.TestCase, device: DAQ) -> None:
             # Limiting the sampling rate yields more reliable results.
             time.sleep(1 / 5_000_000)
 
-            # Store delay time in list if state changed.
+            # Store delay time and state in list if state changed.
             if state != prev_state:
                 delays = np.append(delays, (now - prev_time))
+                states = np.append(states, state)
                 prev_state = state
                 prev_time = now
 
@@ -88,26 +98,44 @@ def base_test(test_case: unittest.TestCase, device: DAQ) -> None:
     jitters_min = jitters_abs.min()
     jitters_max = jitters_abs.max()
 
-    # Print results and stats.
-    print(f"\n{test_case.__class__.__name__}.{test_case.test_read.__name__}()")
-    print(f"\tMean: {jitters_mean:.3f}ms, Std: {jitters_std:.3f}ms, Min: {jitters_min:.3f}ms, Max: {jitters_max:.3f}ms")
-    print(
-        f"\tSamples per second: {samples_per_second:,.0f}, Transitions: {len(jitters)}, Failed: {failed_percent:.1f}%"
-    )
+    # Prepare log message with results and stats.
+    log_message = f""
+    log_message += f"\n{test_case.__class__.__name__}"
+    log_message += f"\n\tMean: {jitters_mean:.3f}ms, Std: {jitters_std:.3f}ms, "
+    log_message += f"Min: {jitters_min:.3f}ms, Max: {jitters_max:.3f}ms"
+    log_message += f"\n\tSamples per second: {samples_per_second:,.0f}, "
+    log_message += f"Transitions: {len(jitters)}, Failed: {failed_percent:.1f}%"
 
-    # Check if all jitters are less then 'MAX_JITTER'. If not, print which
+    # Init variable to store if test passed or failed.
+    passed = False
+
+    # Check if all jitters are less then 'MAX_JITTER'. If not, log which
     # transition failed and what was it's jitter.
     for i, jitter in enumerate(jitters):
         if abs(jitter) > MAX_JITTER:
-            print(f"\t\tFAIL - Jitter of transition {i:03} is over {MAX_JITTER}ms: {jitter:8.3f}ms")
+            log_message += f"\n\t\tFAIL - Jitter of transition {i:03} is over {MAX_JITTER}ms: {jitter:8.3f}ms"
 
-    # If no jitters failed, then print PASS
+    # If no jitters failed, then log "PASS" and set passed variable to True.
     if failed_percent == 0:
-        print("\t\tPASS")
+        log_message += "\n\t\tPASS"
+        passed = True
 
-    # Prevents Github Actions output from getting out of order.
-    print("\n", flush=True)
+    # Print log message and wait a little to prevent Github Actions from
+    # showing the messages out of order.
+    print(f"{log_message}\n", flush=True)
     time.sleep(1)
+
+    # Store results in the database
+    test = db.Test(
+        name=f"{test_case.__class__.__name__}",
+        times=np.cumsum(delays),
+        states=states,
+        passed=passed,
+        log=log_message,
+        uuid=tests_uuid,
+        timestamp=tests_timestamp,
+    )
+    test.save()
 
     # Assert that all jitters are less then 'MAX_JITTER'.
     for jitter in jitters:
