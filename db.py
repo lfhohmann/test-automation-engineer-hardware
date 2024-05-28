@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from mongoengine import BooleanField, DateTimeField, Document, ListField, StringField, connect
 
 load_dotenv()
-connect(os.environ["DB_HOST"])
+connect(host=os.environ["DB_HOST"])
 
 
 class Test(Document):
