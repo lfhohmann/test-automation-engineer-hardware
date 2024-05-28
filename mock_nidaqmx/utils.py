@@ -3,6 +3,8 @@ from typing import Optional
 
 from nidaqmx.errors import DaqError
 
+# Copied from the original 'nidaqmx' module
+
 _invalid_range_syntax_message = (
     "Syntax for a range of objects in the input string is invalid.\n\n"
     "For ranges of objects, specify a number immediately before and after "
