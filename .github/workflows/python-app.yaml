@@ -24,3 +24,5 @@ jobs:
     - name: Run tests
       run: |
         python -m unittest discover
+      env:
+        DB_HOST: ${{ secrets.DB_HOST }} 
