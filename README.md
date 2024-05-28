@@ -52,6 +52,12 @@ There is a test case for each of the tests described above in the `Input signal`
 
 A streamlit app [[`link for the app`]](https://test-automation-engineer-hardware-data.streamlit.app/) was developed to visually inspect the signals, this makes it easier to detect anomalies and patterns. As mentioned above, the results of each test are stored in a mongoDB server, those results store the delays between each sample, the log messages, the test name and an uuid and timestamp of each script execution. The user can sort the tests by timestamp, retrieve the desired one by name and view the waveform on an interactive plotly graph.
 
+## Notes
+* The repository is divided into `master`, `dev` and other branches that were used to develop specific features. All the final code was merged into the `master` branch.
+* The MongoDB instance is hosted on a MongoDB Atlas free tier server.
+* The Streamlit app is hosted on Streamlit Cloud.
+* The MondoDB `host`, `user` and `password` values are stored as environment variables and managed with Github Secrets and Streamlit Secrets.
+
 ## Observations
 * Executing the DAQ Tests to check sampling rate, show that the Python Interpreter is more than capable of simulating the sampling rate of 20ks/s *(both locally as in Github Actions servers)*.
 * The Python Interpreter is also capable of generating the signal waveform with accuracies better than the necessary ±10ms window, but it was not able to reach the full 20ks/s sampling rate specified by the [`NI USB-6001`](https://www.ni.com/pt-br/shop/model/usb-6001.html) DAQ datasheet *(Neither locally nor on Github Actions servers)*.
