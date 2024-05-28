@@ -322,7 +322,7 @@ class TestSignalSingleSampleNoise(unittest.TestCase):
         # Global class variables to track the state changes
         self.next_state_change_time = time.perf_counter()
         self.current_state = 0
-        self.is_fluke = True
+        self.is_random = True
 
     def side_effect_read(self, *args: list, **kwargs: dict) -> int:
         """
@@ -339,17 +339,17 @@ class TestSignalSingleSampleNoise(unittest.TestCase):
         # Store the current time to be constant for each function call.
         now = time.perf_counter()
 
-        # If last change was a fluke, change states again.
-        if self.is_fluke:
+        # If last change was randomly set, change states again.
+        if self.is_random:
             self.current_state = not self.current_state
-            self.is_fluke = False
+            self.is_random = False
 
             return self.current_state
 
         # Inject randomly a fluke in the signal.
         if random.random() < 0.000075:
             self.current_state = not self.current_state
-            self.is_fluke = True
+            self.is_random = True
 
             return self.current_state
 
